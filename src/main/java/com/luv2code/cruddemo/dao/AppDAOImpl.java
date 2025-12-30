@@ -3,6 +3,7 @@ package com.luv2code.cruddemo.dao;
 import com.luv2code.cruddemo.entity.Course;
 import com.luv2code.cruddemo.entity.Instructor;
 import com.luv2code.cruddemo.entity.InstructorDetail;
+import com.luv2code.cruddemo.entity.Student;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -165,6 +166,63 @@ public class AppDAOImpl implements AppDAO{
 
         Course course = query.getSingleResult();
         return course;
+    }
+
+    @Override
+    public Course findCourseAndStudentsByCourseId(int theId) {
+        String sql_query = """
+                select c from Course c
+                join fetch c.students
+                where c.id = :data
+                """;
+
+        TypedQuery<Course> query = entityManager.createQuery(sql_query, Course.class);
+        query.setParameter("data", theId);
+
+        Course course = query.getSingleResult();
+        return course;
+    }
+
+    @Override
+    public Student findStudentAndCoursesByStudentId(int theId) {
+        String sql_query = """
+                select s from Student s
+                join fetch s.courses
+                where s.id = :data
+                """;
+
+        TypedQuery<Student> query = entityManager.createQuery(sql_query, Student.class);
+        query.setParameter("data", theId);
+
+        Student student = query.getSingleResult();
+        return student;
+    }
+
+    /**
+     * Updates a given student
+     * @param tempStudent
+     */
+    @Override
+    @Transactional
+    public void update(Student tempStudent) {
+        entityManager.merge(tempStudent);
+    }
+
+    @Override
+    @Transactional
+    public void deleteStudentById(int theId) {
+        Student student = entityManager.find(Student.class, theId);
+
+        if (student != null){
+            List<Course> courses = student.getCourses();
+
+            // Remove association between courses and student.
+            for (Course course: courses){
+                course.getStudents().remove(student);
+            }
+
+            entityManager.remove(student);
+        }
     }
 
 }
